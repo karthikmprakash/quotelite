@@ -1,0 +1,125 @@
+{
+  "product": "QuoteLite",
+  "prd": "PRD.md",
+  "stack": "TBD by replica-architect (PWA-first, offline-capable)",
+  "reference": {
+    "primary": "Jobber",
+    "secondary": [
+      "Housecall Pro",
+      "Markate",
+      "Kickserv",
+      "Decker"
+    ],
+    "recon_from": [
+      "public marketing + pricing pages",
+      "public help centre and docs",
+      "App Store / Play Store listings",
+      "the user's OWN trial account if one exists"
+    ],
+    "never": [
+      "copy code, logo, copy, images, fonts, or content",
+      "scrape behind a login",
+      "use anyone else's credentials"
+    ]
+  },
+  "features": [
+    {
+      "id": "F1",
+      "name": "Create a quote",
+      "acceptance": "Create a quote with customer, >=1 line item (description, qty, unit price), tax, notes and up to 3 photos. Reusable/saved line items. Quote persists and is retrievable after reload.",
+      "verify": "e2e: create quote -> reload -> assert all fields persisted",
+      "status": "pending",
+      "depends_on": []
+    },
+    {
+      "id": "F2",
+      "name": "Quote issued as a link the customer can open without an account",
+      "acceptance": "Quote renders as a shareable URL; opening it in a fresh incognito session shows a branded quote with an Approve control and no login prompt.",
+      "verify": "e2e: generate link -> open in clean context -> assert quote visible + Approve present, no auth wall",
+      "status": "pending",
+      "depends_on": [
+        "F1"
+      ]
+    },
+    {
+      "id": "F3",
+      "name": "Deliver the quote by SMS / WhatsApp / email",
+      "acceptance": "Share action produces a correct deep-link/prefilled message containing the quote URL for each of the three channels.",
+      "verify": "unit: assert generated share URLs/message bodies for sms:, whatsapp:, mailto:",
+      "status": "pending",
+      "depends_on": [
+        "F2"
+      ]
+    },
+    {
+      "id": "F4",
+      "name": "One-tap quote -> invoice",
+      "acceptance": "Approved quote converts to an invoice with identical line items, no re-entry, new sequential invoice number, and status transitions recorded.",
+      "verify": "e2e: approve quote -> convert -> assert invoice line items equal quote line items",
+      "status": "pending",
+      "depends_on": [
+        "F2"
+      ]
+    },
+    {
+      "id": "F5",
+      "name": "Partial payments and mark-as-paid",
+      "acceptance": "Record a partial payment; remaining balance recalculates correctly; final payment flips status to paid. Overpayment is rejected or explicitly handled.",
+      "verify": "unit+integration: payment math table incl. partial, full, rounding, overpayment",
+      "status": "pending",
+      "depends_on": [
+        "F4"
+      ]
+    },
+    {
+      "id": "F6",
+      "name": "Customer list with job history",
+      "acceptance": "Customers are auto-created from quotes; each customer shows all quotes, invoices and payments in one view.",
+      "verify": "e2e: two quotes for one customer appear under one customer record",
+      "status": "pending",
+      "depends_on": [
+        "F1"
+      ]
+    },
+    {
+      "id": "F7",
+      "name": "Offline-first core loop",
+      "acceptance": "With the network disabled, creating a quote, converting to invoice and marking paid all succeed; on reconnect data syncs with no duplicates and no lost writes.",
+      "verify": "e2e: Playwright context.setOffline(true) -> perform loop -> setOffline(false) -> assert exactly-once sync",
+      "status": "pending",
+      "depends_on": [
+        "F1",
+        "F4"
+      ]
+    },
+    {
+      "id": "F8",
+      "name": "Bring-your-own payment account",
+      "acceptance": "Studio/user connects their own Stripe in test mode; an invoice can be paid end-to-end with a test card; platform takes 0% and no fee line is added.",
+      "verify": "integration against Stripe test mode: create payment intent -> confirm test card -> assert invoice paid, assert no platform fee",
+      "status": "pending",
+      "depends_on": [
+        "F4"
+      ]
+    },
+    {
+      "id": "F9",
+      "name": "Flat pricing, unlimited users and quotes",
+      "acceptance": "Code contains no per-seat or per-quote gating; no quota enforcement path exists.",
+      "verify": "grep/unit: assert no seat/quota checks in the codebase",
+      "status": "pending",
+      "depends_on": []
+    },
+    {
+      "id": "F10",
+      "name": "Quote/invoice PDF that does not look amateur",
+      "acceptance": "PDF renders with logo, tax breakdown, totals, terms and page-safe layout; long descriptions wrap rather than clip.",
+      "verify": "render PDF -> assert text content + visual snapshot diff against golden",
+      "status": "pending",
+      "depends_on": [
+        "F1"
+      ]
+    }
+  ],
+  "slug": "quotelite"
+}

@@ -1,0 +1,30 @@
+---
+description: Replica app-clone skill suite is installed in this project at .claude/skills/
+alwaysApply: true
+---
+
+# Replica skills (installed)
+
+This project has the Replica suite at `.claude/skills/replica-*/` (11 skills, MIT,
+from github.com/Jakeschincariol/replica-skill).
+
+To run one, open its `SKILL.md` and follow it as a mode:
+`.claude/skills/replica-recon/SKILL.md`, `replica-architect`, `replica-design`,
+`replica-build`, `replica-backend`, `replica-test`, `replica-diff`,
+`replica-entrepreneur`, `replica-brand`, `replica-launch`, `replica-deploy`.
+
+Python helpers are stdlib-only, no pip install, e.g.:
+
+```
+python3 .claude/skills/replica-design/contrast.py replica/design/tokens.json
+python3 .claude/skills/replica-diff/parity.py <args>
+```
+
+## Rules that apply to every replica workflow
+
+- **Clean-room only.** Rebuild features and user flows. Never copy another
+  product's code, logo, copy, content, or assets.
+- **Never type passwords, card numbers, or live API keys** into any page or file.
+  The user creates third-party accounts (Stripe, Supabase, Resend, Google Cloud)
+  and puts keys in `.env.local`. Generate `.env.example` with names and no values.
+- Keep skills' outputs inside this repo under `replica/`.
