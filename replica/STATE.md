@@ -4,25 +4,25 @@ Machine-readable truth is `replica/features.json` (run `python3 tools/status.py`
 This file is the human/agent narrative that survives context compaction.
 
 ## Current phase
-recon (not started)
+launch written. Deploy was not run.
 
 ## Phases
-- [ ] recon        -> replica/recon-map.md
-- [ ] architect    -> replica/architecture.md
-- [ ] design       -> replica/design/tokens.json + tokens.css
-- [ ] build        -> screens from the recon map
-- [ ] backend      -> auth, db, payments, integrations
-- [ ] test         -> e2e specs green
-- [ ] diff         -> parity score recorded
-- [ ] entrepreneur -> what users of the reference app hate, fixed in ours
-- [ ] brand        -> name + identity (no copied assets)
-- [ ] launch       -> landing page + store listing
+- [x] recon        -> replica/recon-map.md and replica/recon.md
+- [x] architect    -> replica/architecture.md, server/schema.sql
+- [x] design       -> replica/design/
+- [x] build        -> the PWA screens
+- [x] backend      -> SQLite, sessions, sync, PDF, Stripe test route
+- [x] test         -> e2e and vitest. F8 charge not executed
+- [x] diff         -> replica/parity.md 90.6
+- [x] entrepreneur -> replica/feedback.md, replica/fixes.md
+- [x] brand        -> replica/brand.md. Name stays QuoteLite
+- [x] launch       -> landing is the app home. Listing in replica/launch/listing.json
 - (deploy: only once the human supplies a domain)
 
 ## Last session summary
-(none yet)
+Nine features verified, F8 blocked on a Stripe test key. The quote, invoice, and cash-paid loop works offline and syncs once.
 
 ## Next 3 concrete actions
-1. Run replica-recon against the reference app per replica/features.json -> reference.recon_from
-2. Write replica/recon-map.md and replica/architecture.md
-3. Start F1 via tools/record.py
+1. Put a Stripe test secret in the environment and re-run `test/stripe.test.ts`.
+2. Do not deploy until that charge is verified and a domain exists.
+3. Leave dispatch, pricebook, and memberships out.

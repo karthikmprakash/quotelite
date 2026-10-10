@@ -1,0 +1,16 @@
+{
+  "avoid": ["Jobber", "Octopusapp", "Housecall Pro", "Codefied", "Markate", "Kickserv", "Decker", "QuoteIQ", "ServiceTitan"],
+  "app_store": {
+    "name": "QuoteLite",
+    "subtitle": "Quote, invoice, get paid",
+    "promotional_text": "Write the quote in the driveway. It still saves if the signal drops. One flat monthly price.",
+    "description": "QuoteLite is for a one to three person trade crew.\n\nOpen a quote, add the lines, and send a link by text. The customer approves without making an account. You turn that quote into an invoice in one tap and record the payment.\n\nWhat you get:\n- Quotes with photos, tax, and notes\n- A link the customer can open\n- Invoices, partial payments, and a paid balance\n- The same loop with no signal, then a sync\n- Your own card account, with no cut taken by us\n- Solo at $19 a month or Crew at $29\n\nPeople on the crew are not an extra charge.",
+    "keywords": "estimate,plumber,handyman,electrician,landscaper,payment,crew",
+    "whats_new": "Quotes, invoices, and payments on the phone, including with no signal."
+  },
+  "google_play": {
+    "title": "QuoteLite",
+    "short_description": "Quotes and invoices for a small crew, including when the signal drops.",
+    "full_description": "QuoteLite is for a one to three person trade crew.\n\nOpen a quote, add the lines, and send a link by text. The customer approves without making an account. You turn that quote into an invoice in one tap and record the payment.\n\nQuotes, photos, tax, partial payments, and a paid balance. The loop works with no signal and syncs when you are back. Card payments go through your own account.\n\nSolo is $19 a month. Crew is $29. People on the crew are not an extra charge."
+  }
+}

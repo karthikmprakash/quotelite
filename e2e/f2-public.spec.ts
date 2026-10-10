@@ -1,0 +1,30 @@
+import { expect, test } from "@playwright/test";
+import { settle, signUp, watch } from "./helpers.ts";
+
+test("a customer opens the quote link and can approve without an account", async ({ page, browser }) => {
+  const errors = watch(page);
+  await signUp(page);
+  await page.getByRole("link", { name: "New quote" }).click();
+  await page.getByLabel("Customer").fill("Rosa Alvarez");
+  const line = page.getByRole("group", { name: "Line 1" });
+  await line.getByLabel("Description").fill("Replace the kitchen faucet");
+  await line.getByLabel("Qty").fill("1");
+  await line.getByLabel("Price").fill("10.00");
+  await page.getByRole("button", { name: "Save quote" }).click();
+  await settle(page);
+  const href = await page.getByRole("link", { name: /^\/v\// }).getAttribute("href");
+  expect(href).toBeTruthy();
+  const guest = await browser.newContext();
+  const customer = await guest.newPage();
+  const guestErrors = watch(customer);
+  await customer.goto(href!);
+  await expect(customer.getByText("Replace the kitchen faucet")).toBeVisible();
+  await expect(customer.getByRole("button", { name: "Approve" })).toBeVisible();
+  await expect(customer.getByLabel("Password")).toHaveCount(0);
+  await expect(customer.getByRole("button", { name: "Log in" })).toHaveCount(0);
+  await customer.getByRole("button", { name: "Approve" }).click();
+  await expect(customer.getByText("Approved. The shop has the go-ahead.")).toBeVisible();
+  await guest.close();
+  expect(errors).toEqual([]);
+  expect(guestErrors).toEqual([]);
+});

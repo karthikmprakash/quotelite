@@ -1,0 +1,36 @@
+import { expect, test } from "@playwright/test";
+import { settle, signUp, watch } from "./helpers.ts";
+
+test("an approved quote becomes an invoice with the same lines", async ({ page, browser }) => {
+  const errors = watch(page);
+  await signUp(page);
+  await page.getByRole("link", { name: "New quote" }).click();
+  await page.getByLabel("Customer").fill("Rosa Alvarez");
+  const line = page.getByRole("group", { name: "Line 1" });
+  await line.getByLabel("Description").fill("Replace the kitchen faucet");
+  await line.getByLabel("Qty").fill("2");
+  await line.getByLabel("Price").fill("40.00");
+  await page.getByRole("button", { name: "Add line" }).click();
+  const second = page.getByRole("group", { name: "Line 2" });
+  await second.getByLabel("Description").fill("Supply lines");
+  await second.getByLabel("Qty").fill("1");
+  await second.getByLabel("Price").fill("15.50");
+  await page.getByRole("button", { name: "Save quote" }).click();
+  await settle(page);
+  const href = await page.getByRole("link", { name: /^\/v\// }).getAttribute("href");
+  const guest = await browser.newContext();
+  const customer = await guest.newPage();
+  await customer.goto(href!);
+  await customer.getByRole("button", { name: "Approve" }).click();
+  await expect(customer.getByText("Approved")).toBeVisible();
+  await guest.close();
+  await expect(page.getByText("approved", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Make invoice" }).click();
+  await expect(page.getByRole("heading", { name: /INV-\d+/ })).toBeVisible();
+  await expect(page.getByText("Replace the kitchen faucet")).toBeVisible();
+  await expect(page.getByText("Supply lines")).toBeVisible();
+  await expect(page.getByText("2 × $40.00")).toBeVisible();
+  await expect(page.getByText("1 × $15.50")).toBeVisible();
+  await expect(page.getByText("$95.50").first()).toBeVisible();
+  expect(errors).toEqual([]);
+});

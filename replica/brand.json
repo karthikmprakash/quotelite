@@ -1,0 +1,6 @@
+{
+  "name": "QuoteLite",
+  "avoid": ["Jobber", "Octopusapp", "Housecall Pro", "Codefied", "Markate", "Kickserv", "Decker", "QuoteIQ", "ServiceTitan"],
+  "domains": ["getjobber.com", "housecallpro.com", "markate.com", "kickserv.com", "getdecker.app", "servicetitan.com"],
+  "colors": []
+}

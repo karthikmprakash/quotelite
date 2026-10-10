@@ -1,0 +1,45 @@
+feature,area,priority,original,clone,notes
+Create a quote with customer line items tax and notes,quote,must,yes,yes,F1
+Attach up to 3 photos on a quote,quote,must,yes,yes,F1
+Save a line and reuse it on the next quote,quote,must,yes,yes,short list not a pricebook
+Quote still there after reload,quote,must,yes,yes,F1
+Public link opens the quote with no account,quote,must,yes,yes,F2
+Customer can approve from that link,quote,must,yes,yes,F2
+Share link by text WhatsApp and email,quote,must,yes,yes,F3
+One tap turns an approved quote into an invoice,invoice,must,yes,yes,F4
+Invoice lines match the quote,invoice,must,yes,yes,F4
+New sequential invoice number,invoice,must,yes,yes,F4
+Status changes are recorded,quote,must,yes,yes,F4
+Record a partial payment and show the balance,invoice,must,yes,yes,F5
+Mark the remainder paid,invoice,must,yes,yes,F5
+Reject an overpayment,invoice,must,yes,yes,F5
+Customer is created from the quote,customers,must,yes,yes,F6
+One customer shows every quote invoice and payment,customers,must,yes,yes,F6
+Create quote invoice and mark paid while offline,offline,must,yes,yes,F7
+Sync those writes once with nothing lost,offline,must,yes,yes,F7
+Connect the crew's own Stripe test account,payments,must,yes,partial,F8 code is in; charge not run without a test secret
+Pay an invoice with a test card and add no platform fee,payments,must,yes,partial,F8 blocked on a Stripe test key
+No per-person or per-quote limit in the product,pricing,must,yes,yes,F9
+PDF shows logo tax breakdown totals terms and wraps long lines,pdf,must,yes,yes,F10
+Unpaid list,invoice,should,yes,yes,
+Highlight invoices that are 3 and 7 days old,invoice,should,yes,yes,text link not a paid SMS gateway
+Mark approved when the customer says yes in person,quote,should,yes,yes,
+Optional visit date on the invoice,invoice,should,yes,yes,
+Add helpers with no seat cap,team,should,yes,yes,
+CSV of invoices,invoice,should,yes,yes,
+Business name logo tax rate and terms,settings,should,yes,yes,
+Discount on a quote,quote,could,yes,no,not in v1
+Deposit due at approval,quote,could,yes,no,not in v1
+Customer requests changes on the link,quote,could,yes,no,not in v1
+Quote title only the crew sees,quote,could,yes,no,not in v1
+Automatic SMS from a gateway,invoice,could,yes,no,needs a provider key
+Dispatch board,schedule,must,yes,skip,PRD out of scope
+GPS tracking,schedule,must,yes,skip,PRD out of scope
+Route optimisation,schedule,could,yes,skip,PRD out of scope
+Pricebook with thousands of items,quote,must,yes,skip,PRD out of scope
+Memberships and recurring plans,billing,could,yes,skip,PRD out of scope
+Marketing automation,marketing,could,yes,skip,PRD out of scope
+Payroll,team,could,yes,skip,PRD out of scope
+Job costing,reporting,could,yes,skip,PRD out of scope
+Native iOS app,platform,could,yes,skip,PWA on purpose
+Consumer financing partner,payments,could,yes,skip,their partner deal not ours
