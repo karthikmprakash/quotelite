@@ -67,7 +67,7 @@ Recon them from: public marketing and pricing pages, public help centre and docs
 - **Never** scrape behind a login, and never use anyone else's account or credentials.
 - If a flow cannot be observed publicly, design your own and log the decision.
 - Rebuild the *job* it does, in your own design system, with your own assets and your own words.
-- `Pay particular attention to the recon of **per-user pricing walls and the tier-jump upsell** — the PRD's entire wedge is that Jobber's Connect/Grow tiers and $29/user fee are what churn customers out.`
+- Pay particular attention to the recon of **per-user pricing walls and the tier-jump upsell** — the PRD's entire wedge is that Jobber's Connect/Grow tiers and $29/user fee are what churn customers out.`
 
 ## 6. Skill order
 
@@ -95,7 +95,7 @@ Python helpers are stdlib-only: `python3 .claude/skills/replica-design/contrast.
 - **Never type, generate or store passwords, card numbers, or live API keys.** Write `.env.example` with variable names and no values. The human fills `.env.local` (already gitignored).
 - Use **test mode** for every payment provider. Never send real emails, SMS or charges to real people.
 - Keep all generated artefacts under `replica/`.
-- `**Offline-first is the differentiator, not a nice-to-have.** F7 must genuinely work with the network disabled. Never fake it with a cache that silently loses writes.`
+- **Offline-first is the differentiator, not a nice-to-have.** F7 must genuinely work with the network disabled. Never fake it with a cache that silently loses writes.
 - Prefer boring, well-supported choices over novel ones. You are optimising for a product that survives, not a demo that impresses.
 
 ## 8. Final report — write `replica/FINAL-REPORT.md`
