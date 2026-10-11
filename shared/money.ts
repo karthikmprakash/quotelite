@@ -44,7 +44,8 @@ export function assertCanPay(totalCents: number, paidCents: number, amountCents:
 export function formatMoney(cents: number): string {
   const sign = cents < 0 ? "-" : "";
   const abs = Math.abs(cents);
-  return `${sign}$${Math.floor(abs / 100)}.${String(abs % 100).padStart(2, "0")}`;
+  const dollars = String(Math.floor(abs / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return `${sign}$${dollars}.${String(abs % 100).padStart(2, "0")}`;
 }
 
 export function formatQty(milli: number): string {
@@ -62,7 +63,7 @@ export function formatDollarsInput(cents: number): string {
 }
 
 export function parseDollars(input: string): number | null {
-  const trimmed = input.trim().replace(/^\$/, "");
+  const trimmed = input.trim().replace(/^\$/, "").replace(/,(?=\d{3}(\D|$))/g, "");
   if (!/^\d+(\.\d{1,2})?$/.test(trimmed)) return null;
   const [dollars, cents = ""] = trimmed.split(".");
   const value = Number(dollars) * 100 + Number(cents.padEnd(2, "0").slice(0, 2));

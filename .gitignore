@@ -26,3 +26,11 @@ coverage/
 # OS / editor
 .DS_Store
 *.log
+
+# Local design tooling
+.impeccable/
+.cursor/skills/
+.cursor/agents/
+
+# Backups written by deploy/backup.sh
+backups/

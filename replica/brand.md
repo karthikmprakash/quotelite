@@ -33,7 +33,7 @@ A lawyer should search before money is spent on the name.
 
 ## Palette
 
-Copper `#8C2F0E` on warm paper `#F3F0E8`. The reference product's marketing art is green. This is not that green. Contrast: `python3 .claude/skills/replica-design/contrast.py replica/design/tokens.json`.
+Ember `#8B2E0A` on luminous dusk `#C5D2E3`, frost panels over copper and teal orbs. The reference product's marketing art is green. This is not that green. Contrast: `python3 .claude/skills/replica-design/contrast.py replica/design/tokens.json`.
 
 No hex from their brand was sampled off a screenshot, so `brand.json` has an empty color list. Names and domains are what the sweep checks.
 
@@ -43,7 +43,7 @@ Short sentences. Say the job, not the category. "New quote", "Make invoice", "Ma
 
 ## Logo brief
 
-A folded paper corner on a copper square. Wordmark set in the system sans. Must read at 16px and as a 1024px icon with a solid background. The working mark is `public/favicon.svg`. A designer still owes a 1024px PNG with no transparency before any store upload.
+Ember tile with a pair of cream closing quotation marks. The warmth of the tile is the “lite.” Not a document, clipboard, folded page, or search loupe. Wordmark is Outfit next to the mark. Must read at 16px and as a 1024px icon with a solid background. The working mark is `public/favicon.svg` (same drawing in `replica/brand/logo.svg`). A 1024px PNG with no transparency is still owed before any store upload.
 
 ## Sweep
 

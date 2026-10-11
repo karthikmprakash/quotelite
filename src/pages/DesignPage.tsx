@@ -11,11 +11,11 @@ export function DesignPage() {
         <button className="btn btn-ghost" type="button">Ghost</button>
         <button className="btn btn-danger" type="button">Danger</button>
         <button className="btn btn-primary" type="button" disabled>Disabled</button>
-        <button className="btn btn-primary" type="button" aria-busy="true">Saving</button>
+        <button className="btn btn-primary" type="button" aria-busy="true">Saving…</button>
       </div>
       <label className="field">
         Label
-        <input placeholder="Type here" />
+        <input placeholder="Type here…" />
       </label>
       <p className="banner banner-error" role="alert">Something needs a fix.</p>
       <p className="banner banner-ok">Saved on this phone.</p>

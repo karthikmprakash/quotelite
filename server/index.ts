@@ -9,6 +9,7 @@ if (dbPath !== ":memory:") mkdirSync(dirname(dbPath), { recursive: true });
 
 const { app } = createApp(dbPath);
 const port = Number(process.env.PORT || 8787);
-serve({ fetch: app.fetch, port, hostname: "127.0.0.1" }, (info) => {
-  console.log(`listening ${info.port}`);
+const hostname = process.env.HOST || "0.0.0.0";
+serve({ fetch: app.fetch, port, hostname }, (info) => {
+  console.log(`listening ${info.address}:${info.port}`);
 });

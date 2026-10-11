@@ -21,7 +21,10 @@ describe("payment math", () => {
     expect(computeTotals([{ lineCents: 999 }], 1000)).toEqual({ subtotalCents: 999, taxCents: 100, totalCents: 1099 });
     expect(computeTotals([{ lineCents: 1000 }], 825)).toEqual({ subtotalCents: 1000, taxCents: 83, totalCents: 1083 });
     expect(formatMoney(1083)).toBe("$10.83");
+    expect(formatMoney(123456789)).toBe("$1,234,567.89");
     expect(parseDollars("12.50")).toBe(1250);
+    expect(parseDollars("$1,250.00")).toBe(125000);
+    expect(parseDollars("1,25")).toBeNull();
     expect(parseQty("1.5")).toBe(1500);
     expect(parseTaxPercent("8.25")).toBe(825);
   });

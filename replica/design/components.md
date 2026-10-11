@@ -10,7 +10,7 @@ Tap target is `--tap` (48px). Body text is 16px so a phone does not zoom the fie
   variants  primary, secondary, ghost, danger
   sizes     md 48px height, block optional
   states    default, hover, active, focus-visible (2px accent ring, 2px offset), disabled, loading (aria-busy, label stays)
-  tokens    primary: bg accent, text on-accent, radius md. secondary: bg surface, text text, border border-input. ghost: transparent. danger: text danger, border danger.
+  tokens    primary: bg accent, text on-accent, radius md, soft inner highlight. secondary: glass-strong, text text, glass border. ghost: transparent. danger: text danger. Glass surfaces sit on the dusk atmosphere so frost reads.
   a11y      real button, type=button unless it submits, visible focus, disabled not clickable
   used on   S01–S14
 
@@ -38,7 +38,7 @@ Tap target is `--tap` (48px). Body text is 16px so a phone does not zoom the fie
 ## Card
   variants  list row, document, price
   states    default
-  tokens    bg surface, border border, radius lg, shadow card, padding space-4
+  tokens    bg surface, border border, radius md, no shadow, padding space-4
   a11y      article or li, heading inside when it is a section
   used on   S01 S04 S06 S07 S08 S10 S12
 

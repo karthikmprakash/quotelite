@@ -186,6 +186,25 @@ function readLines(value: unknown): { id: string; description: string; qtyMilli:
   });
 }
 
+function numberFor(
+  db: DB,
+  table: "quotes" | "invoices",
+  crewId: string,
+  recordId: string,
+  wanted: string,
+  current: string | undefined,
+): string {
+  if (current) return current;
+  const taken = get(db, `SELECT id FROM ${table} WHERE crew_id = ? AND number = ? AND id <> ?`, crewId, wanted, recordId);
+  if (!taken) return wanted;
+  const prefix = wanted.replace(/\d+$/, "") || (table === "quotes" ? "Q-" : "INV-");
+  const highest = all<{ number: string }>(db, `SELECT number FROM ${table} WHERE crew_id = ?`, crewId).reduce(
+    (max, row) => Math.max(max, Number(/(\d+)$/.exec(row.number)?.[1] ?? 0)),
+    1000,
+  );
+  return `${prefix}${highest + 1}`;
+}
+
 function applyQuote(db: DB, crewId: string, op: SyncOp): void {
   const customerId = str(op.payload.customerId);
   const customer = get<{ id: string }>(
@@ -203,12 +222,13 @@ function applyQuote(db: DB, crewId: string, op: SyncOp): void {
   const totals = computeTotals(lines, taxBps);
   const updated = str(op.payload.updatedAt, op.at);
   const created = str(op.payload.createdAt, updated);
-  const previous = get<{ status: string; created_at: string }>(
+  const previous = get<{ status: string; created_at: string; number: string }>(
     db,
-    "SELECT status, created_at FROM quotes WHERE id = ? AND crew_id = ?",
+    "SELECT status, created_at, number FROM quotes WHERE id = ? AND crew_id = ?",
     op.recordId,
     crewId,
   );
+  const number = numberFor(db, "quotes", crewId, op.recordId, str(op.payload.number).trim(), previous?.number);
   run(
     db,
     `INSERT INTO quotes (
@@ -223,7 +243,7 @@ function applyQuote(db: DB, crewId: string, op: SyncOp): void {
     op.recordId,
     crewId,
     customerId,
-    str(op.payload.number).trim(),
+    number,
     status,
     taxBps,
     str(op.payload.notes),
@@ -293,12 +313,13 @@ function applyInvoice(db: DB, crewId: string, op: SyncOp): void {
   const totals = computeTotals(lines, taxBps);
   const updated = str(op.payload.updatedAt, op.at);
   const created = str(op.payload.createdAt, updated);
-  const previous = get<{ created_at: string }>(
+  const previous = get<{ created_at: string; number: string }>(
     db,
-    "SELECT created_at FROM invoices WHERE id = ? AND crew_id = ?",
+    "SELECT created_at, number FROM invoices WHERE id = ? AND crew_id = ?",
     op.recordId,
     crewId,
   );
+  const number = numberFor(db, "invoices", crewId, op.recordId, str(op.payload.number).trim(), previous?.number);
   const scheduled = str(op.payload.scheduledDate).trim();
   run(
     db,
@@ -316,7 +337,7 @@ function applyInvoice(db: DB, crewId: string, op: SyncOp): void {
     crewId,
     customerId,
     quoteId || null,
-    str(op.payload.number).trim(),
+    number,
     taxBps,
     str(op.payload.notes),
     str(op.payload.terms),

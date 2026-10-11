@@ -1,4 +1,15 @@
-import { db, type Customer, type Invoice, type Line, type Payment, type Photo, type Quote, type SavedItem, type StatusEvent } from "./db.ts";
+import {
+  db,
+  type Customer,
+  type Invoice,
+  type Line,
+  type OutboxOp,
+  type Payment,
+  type Photo,
+  type Quote,
+  type SavedItem,
+  type StatusEvent,
+} from "./db.ts";
 
 type Business = {
   name: string;
@@ -12,6 +23,10 @@ type Business = {
   payments: "test" | "off";
 };
 
+export type SyncIssue = { kind: "auth" | "rejected"; message: string };
+
+class AuthExpired extends Error {}
+
 let running = false;
 let again = false;
 
@@ -23,16 +38,38 @@ export async function syncNow(): Promise<void> {
   }
   running = true;
   try {
+    let rounds = 0;
     do {
       again = false;
       await flush();
       await pull();
-    } while (again);
-  } catch {
-    await db.meta.put({ id: "syncError", value: "Changes are still on this phone." });
+      rounds += 1;
+    } while (again && rounds < 5);
+    const current = (await db.meta.get("syncIssue"))?.value as SyncIssue | undefined;
+    if (current?.kind === "auth") await db.meta.delete("syncIssue");
+  } catch (err) {
+    if (err instanceof AuthExpired) {
+      const issue: SyncIssue = { kind: "auth", message: "Your login has expired. Log in again so your changes can sync." };
+      await db.meta.put({ id: "syncIssue", value: issue });
+    }
   } finally {
     running = false;
   }
+}
+
+export async function dismissSyncIssue(): Promise<void> {
+  await db.meta.delete("syncIssue");
+}
+
+function labelOf(op: OutboxOp | undefined): string {
+  if (!op) return "A change";
+  const number = String(op.payload.number || "");
+  if (op.entity === "quote") return number ? `Quote ${number}` : "A quote";
+  if (op.entity === "invoice") return number ? `Invoice ${number}` : "An invoice";
+  if (op.entity === "payment") return "A payment";
+  if (op.entity === "customer") return op.payload.name ? `Customer ${String(op.payload.name)}` : "A customer";
+  if (op.entity === "saved_item") return "A saved item";
+  return "Business settings";
 }
 
 async function flush(): Promise<void> {
@@ -53,23 +90,32 @@ async function flush(): Promise<void> {
       })),
     }),
   });
+  if (res.status === 401) throw new AuthExpired();
   if (!res.ok) throw new Error("sync failed");
   const body = (await res.json()) as {
     acked: string[];
     rejected: { id: string; error: string; permanent: boolean }[];
   };
+  const byId = new Map(pending.map((op) => [op.id, op]));
   await db.transaction("rw", db.outbox, db.meta, async () => {
     for (const id of body.acked) await db.outbox.delete(id);
-    for (const item of body.rejected) {
-      if (item.permanent) await db.outbox.delete(item.id);
+    const dropped = body.rejected.filter((item) => item.permanent);
+    for (const item of dropped) await db.outbox.delete(item.id);
+    if (dropped.length > 0) {
+      const first = dropped[0];
+      const more = dropped.length > 1 ? ` (and ${dropped.length - 1} more)` : "";
+      const issue: SyncIssue = {
+        kind: "rejected",
+        message: `${labelOf(byId.get(first.id))} did not sync: ${first.error}${more}`,
+      };
+      await db.meta.put({ id: "syncIssue", value: issue });
     }
-    if (body.rejected.length > 0) await db.meta.put({ id: "syncError", value: body.rejected[0].error });
-    else await db.meta.delete("syncError");
   });
 }
 
 async function pull(): Promise<void> {
   const res = await fetch("/api/sync", { credentials: "include" });
+  if (res.status === 401) throw new AuthExpired();
   if (!res.ok) throw new Error("pull failed");
   const snap = (await res.json()) as {
     business: Business | null;

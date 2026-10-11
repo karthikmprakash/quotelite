@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="QuoteLite">
+  <defs>
+    <radialGradient id="ql-tile" cx="34%" cy="26%" r="82%">
+      <stop offset="0%" stop-color="#A33A12"/>
+      <stop offset="100%" stop-color="#6F2408"/>
+    </radialGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#ql-tile)"/>
+  <text
+    x="32"
+    y="41"
+    text-anchor="middle"
+    dominant-baseline="middle"
+    font-family="Georgia, 'Times New Roman', Times, serif"
+    font-size="46"
+    font-weight="700"
+    fill="#FFF4EC"
+  >”</text>
+</svg>

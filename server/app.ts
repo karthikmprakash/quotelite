@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { existsSync, readFileSync } from "node:fs";
+import { randomBytes } from "node:crypto";
 import { hashPassword, sessionToken, validEmail, verifyPassword } from "./auth.ts";
 import { all, get, nowIso, openDatabase, run, uid, type DB } from "./db.ts";
 import { renderDocumentPdf, type PdfDoc } from "../shared/pdf.ts";
@@ -27,7 +28,7 @@ export type SessionUser = {
 
 type Vars = { user: SessionUser };
 
-const DEFAULT_TERMS = "Payment is due when the work is done. This quote is good for 30 days.";
+const DEFAULT_TERMS = "Payment is due when the work is done. Quotes are good for 30 days.";
 
 function pathOf(c: { req: { url: string } }): string {
   return new URL(c.req.url).pathname;
@@ -72,6 +73,7 @@ function issueSession(c: { header: (name: string, value: string) => void }, db: 
     sameSite: "Lax",
     path: "/",
     maxAge: 30 * 24 * 60 * 60,
+    secure: process.env.COOKIE_SECURE === "1",
   });
 }
 
@@ -180,6 +182,11 @@ async function pdfFor(db: DB, row: DocRow, kind: "quote" | "invoice"): Promise<U
   return rendered.bytes;
 }
 
+function contactOf(db: DB, crewId: string) {
+  const business = businessOf(db, crewId);
+  return { businessPhone: business?.phone || "", businessEmail: business?.email || "" };
+}
+
 function publicQuote(db: DB, row: DocRow) {
   const photos = all<{ mime: string; data_base64: string }>(
     db,
@@ -191,6 +198,7 @@ function publicQuote(db: DB, row: DocRow) {
     status: row.status,
     customerName: row.customer_name,
     businessName: row.business_name,
+    ...contactOf(db, row.crew_id),
     logoDataUrl: row.logo_base64 ? `data:${row.logo_mime || "image/png"};base64,${row.logo_base64}` : null,
     notes: row.notes,
     terms: row.terms,
@@ -220,6 +228,7 @@ function publicInvoice(db: DB, row: DocRow) {
     status: row.status,
     customerName: row.customer_name,
     businessName: row.business_name,
+    ...contactOf(db, row.crew_id),
     logoDataUrl: row.logo_base64 ? `data:${row.logo_mime || "image/png"};base64,${row.logo_base64}` : null,
     notes: row.notes,
     terms: row.terms,
@@ -248,11 +257,180 @@ function csvEscape(value: string | number): string {
   return text;
 }
 
+const DEMO_EMAIL = "demo@quotelite.local";
+
+function ensureDemoAccount(db: DB): SessionUser {
+  const existing = get<{
+    id: string;
+    crew_id: string;
+    name: string;
+    email: string;
+    role: "owner" | "helper";
+    business_name: string;
+  }>(
+    db,
+    `SELECT users.id, users.crew_id, users.name, users.email, users.role, crews.name AS business_name
+     FROM users
+     JOIN crews ON crews.id = users.crew_id
+     WHERE users.email = ?`,
+    DEMO_EMAIL,
+  );
+  if (existing) {
+    return {
+      id: existing.id,
+      crewId: existing.crew_id,
+      name: existing.name,
+      email: existing.email,
+      role: existing.role,
+      businessName: existing.business_name,
+    };
+  }
+
+  const crewId = uid();
+  const userId = uid();
+  const customerId = uid();
+  const quoteId = uid();
+  const invoiceId = uid();
+  const at = nowIso();
+  const business = "Ridgeway Trades";
+  const subtotal = 48500;
+  const tax = 0;
+  const total = subtotal + tax;
+
+  db.exec("BEGIN");
+  try {
+    run(
+      db,
+      `INSERT INTO crews (id, name, phone, email, plan, tax_bps, terms, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'crew', 0, ?, ?, ?)`,
+      crewId,
+      business,
+      "(312) 555-0148",
+      DEMO_EMAIL,
+      DEFAULT_TERMS,
+      at,
+      at,
+    );
+    run(
+      db,
+      `INSERT INTO users (id, crew_id, name, email, password_hash, role, created_at)
+       VALUES (?, ?, ?, ?, ?, 'owner', ?)`,
+      userId,
+      crewId,
+      "Demo Owner",
+      DEMO_EMAIL,
+      hashPassword(randomBytes(32).toString("hex")),
+      at,
+    );
+    run(
+      db,
+      `INSERT INTO customers (id, crew_id, name, phone, email, notes, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      customerId,
+      crewId,
+      "Maya Chen",
+      "(312) 555-0192",
+      "maya@example.com",
+      "Basement bath remodel.",
+      at,
+      at,
+    );
+    run(
+      db,
+      `INSERT INTO quotes (
+         id, crew_id, customer_id, number, status, tax_bps, notes, terms, public_token,
+         subtotal_cents, tax_cents, total_cents, created_at, updated_at
+       ) VALUES (?, ?, ?, 'Q-1001', 'sent', 0, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      quoteId,
+      crewId,
+      customerId,
+      "Supply and install vanity faucet.",
+      DEFAULT_TERMS,
+      uid().replace(/-/g, ""),
+      subtotal,
+      tax,
+      total,
+      at,
+      at,
+    );
+    run(
+      db,
+      `INSERT INTO quote_lines (id, quote_id, position, description, qty_milli, unit_price_cents, line_cents)
+       VALUES (?, ?, 0, ?, 1000, ?, ?)`,
+      uid(),
+      quoteId,
+      "Labor - faucet install",
+      18500,
+      18500,
+    );
+    run(
+      db,
+      `INSERT INTO quote_lines (id, quote_id, position, description, qty_milli, unit_price_cents, line_cents)
+       VALUES (?, ?, 1, ?, 1000, ?, ?)`,
+      uid(),
+      quoteId,
+      "Moen Vale faucet",
+      30000,
+      30000,
+    );
+    run(
+      db,
+      `INSERT INTO invoices (
+         id, crew_id, customer_id, quote_id, number, status, tax_bps, notes, terms, public_token,
+         subtotal_cents, tax_cents, total_cents, scheduled_date, created_at, updated_at
+       ) VALUES (?, ?, ?, NULL, 'INV-1001', 'open', 0, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`,
+      invoiceId,
+      crewId,
+      customerId,
+      "Drain clear for kitchen sink.",
+      DEFAULT_TERMS,
+      uid().replace(/-/g, ""),
+      16500,
+      0,
+      16500,
+      at,
+      at,
+    );
+    run(
+      db,
+      `INSERT INTO invoice_lines (id, invoice_id, position, description, qty_milli, unit_price_cents, line_cents)
+       VALUES (?, ?, 0, ?, 1000, ?, ?)`,
+      uid(),
+      invoiceId,
+      "Service call + drain clear",
+      16500,
+      16500,
+    );
+    db.exec("COMMIT");
+  } catch (err) {
+    try {
+      db.exec("ROLLBACK");
+    } catch {
+      /* closed */
+    }
+    throw err;
+  }
+
+  return {
+    id: userId,
+    crewId,
+    name: "Demo Owner",
+    email: DEMO_EMAIL,
+    role: "owner",
+    businessName: business,
+  };
+}
+
 export function createApp(dbPath: string) {
   const db = openDatabase(dbPath);
   const app = new Hono<{ Variables: Vars }>();
 
-  app.get("/api/health", (c) => c.json({ ok: true }));
+  app.get("/api/health", (c) =>
+    c.json({
+      ok: true,
+      version: process.env.APP_VERSION || "0.1.0",
+    }),
+  );
 
   app.post("/api/auth/signup", async (c) => {
     const body = await c.req.json().catch(() => null);
@@ -331,6 +509,12 @@ export function createApp(dbPath: string) {
     return c.json({ user: readUser(db, issued?.token) });
   });
 
+  app.post("/api/auth/demo", (c) => {
+    const user = ensureDemoAccount(db);
+    issueSession(c, db, user.id);
+    return c.json({ user });
+  });
+
   app.post("/api/auth/logout", (c) => {
     const token = getCookie(c, "ql_session");
     if (token) run(db, "DELETE FROM sessions WHERE token = ?", token);
@@ -344,6 +528,7 @@ export function createApp(dbPath: string) {
       path === "/api/health" ||
       path === "/api/auth/login" ||
       path === "/api/auth/signup" ||
+      path === "/api/auth/demo" ||
       path === "/api/auth/logout" ||
       path.startsWith("/api/public/")
     ) {
@@ -601,7 +786,6 @@ export function createApp(dbPath: string) {
   });
 
   if (existsSync("dist/index.html")) {
-    const html = readFileSync("dist/index.html", "utf8");
     const types: Record<string, string> = {
       ".html": "text/html; charset=utf-8",
       ".js": "text/javascript; charset=utf-8",
@@ -609,6 +793,11 @@ export function createApp(dbPath: string) {
       ".svg": "image/svg+xml",
       ".webmanifest": "application/manifest+json",
       ".png": "image/png",
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".webp": "image/webp",
+      ".ico": "image/x-icon",
+      ".woff2": "font/woff2",
       ".json": "application/json",
     };
     app.use("/*", async (c, next) => {
@@ -619,7 +808,7 @@ export function createApp(dbPath: string) {
       if (ext && existsSync(candidate) && !candidate.endsWith("/")) {
         return c.body(readFileSync(candidate), 200, { "content-type": types[ext] || "application/octet-stream" });
       }
-      return c.html(html);
+      return c.html(readFileSync("dist/index.html", "utf8"));
     });
   }
 

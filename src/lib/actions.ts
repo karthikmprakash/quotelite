@@ -13,7 +13,7 @@ import {
 import { db, type Customer, type Invoice, type Line, type Payment, type Quote } from "./db.ts";
 import { syncNow } from "./sync.ts";
 
-const DEFAULT_TERMS = "Payment is due when the work is done. This quote is good for 30 days.";
+const DEFAULT_TERMS = "Payment is due when the work is done. Quotes are good for 30 days.";
 
 export type SessionUser = {
   id: string;
@@ -43,35 +43,48 @@ async function clearAll(): Promise<void> {
 }
 
 export async function rememberSession(user: SessionUser, business?: Business): Promise<void> {
-  await clearAll();
+  const previous = (await db.meta.get("session"))?.value as SessionUser | undefined;
+  const sameCrew = previous?.crewId === user.crewId;
+  if (!sameCrew) await clearAll();
   await db.meta.put({ id: "session", value: user });
-  await db.meta.put({
-    id: "business",
-    value: business ?? {
-      name: user.businessName,
-      phone: "",
-      email: user.email,
-      plan: "solo",
-      taxBps: 0,
-      terms: DEFAULT_TERMS,
-      logoMime: null,
-      logoBase64: null,
-      payments: "off",
-    },
-  });
+  if (!sameCrew || business) {
+    await db.meta.put({
+      id: "business",
+      value: business ?? {
+        name: user.businessName,
+        phone: "",
+        email: user.email,
+        plan: "solo",
+        taxBps: 0,
+        terms: DEFAULT_TERMS,
+        logoMime: null,
+        logoBase64: null,
+        payments: "off",
+      },
+    });
+  }
   await syncNow();
+}
+
+export async function unsyncedCount(): Promise<number> {
+  return db.outbox.count();
 }
 
 export async function logoutLocal(): Promise<void> {
   await clearAll();
 }
 
+function numberPart(value: string): number {
+  return Number(/(\d+)$/.exec(value)?.[1] ?? 0);
+}
+
 async function nextNumber(kind: "quote" | "invoice"): Promise<number> {
   const key = `counter-${kind}`;
-  return db.transaction("rw", db.meta, async () => {
+  return db.transaction("rw", [db.meta, db.quotes, db.invoices], async () => {
     const row = await db.meta.get(key);
-    const current = typeof row?.value === "number" ? row.value : 1000;
-    const next = current + 1;
+    const docs: { number: string }[] = kind === "quote" ? await db.quotes.toArray() : await db.invoices.toArray();
+    const counter = typeof row?.value === "number" ? row.value : 1000;
+    const next = docs.reduce((max, doc) => Math.max(max, numberPart(doc.number)), counter) + 1;
     await db.meta.put({ id: key, value: next });
     return next;
   });
@@ -188,6 +201,102 @@ export async function createQuote(input: {
   });
   void syncNow();
   return quote;
+}
+
+export async function updateQuote(
+  id: string,
+  input: {
+    customerName: string;
+    phone: string;
+    email: string;
+    lines: DraftLine[];
+    taxPercent: string;
+    notes: string;
+    photos: { mime: string; dataBase64: string }[];
+  },
+): Promise<Quote> {
+  const quote = await db.quotes.get(id);
+  if (!quote) throw new Error("Quote not found.");
+  if (quote.status !== "draft") throw new Error("This quote was already sent. Start a new one to change the work.");
+  const name = input.customerName.trim();
+  const nameKey = normalizeName(name);
+  if (!nameKey) throw new Error("Add a customer name.");
+  const taxBps = parseTaxPercent(input.taxPercent);
+  if (taxBps === null) throw new Error("Tax should be a percent, like 8.25.");
+  const priced = priceDraft(input.lines);
+  const totals = computeTotals(priced, taxBps);
+  const now = new Date().toISOString();
+  const existing = (await db.customers.get(quote.customerId)) ?? (await db.customers.where("nameKey").equals(nameKey).first());
+  const customer: Customer = existing
+    ? {
+        ...existing,
+        name,
+        nameKey,
+        phone: input.phone.trim() || existing.phone,
+        email: input.email.trim() || existing.email,
+        updatedAt: now,
+      }
+    : {
+        id: crypto.randomUUID(),
+        name,
+        nameKey,
+        phone: input.phone.trim(),
+        email: input.email.trim(),
+        notes: "",
+        createdAt: now,
+        updatedAt: now,
+      };
+  const next: Quote = {
+    ...quote,
+    customerId: customer.id,
+    taxBps,
+    notes: input.notes.trim(),
+    ...totals,
+    updatedAt: now,
+  };
+  const lines = priced.map((line, position) => ({ ...line, id: crypto.randomUUID(), parentId: next.id, position }));
+  const photos = input.photos.slice(0, 3).map((photo, position) => ({
+    id: crypto.randomUUID(),
+    quoteId: next.id,
+    position,
+    mime: photo.mime,
+    dataBase64: photo.dataBase64,
+  }));
+  await db.transaction("rw", [db.customers, db.quotes, db.quoteLines, db.quotePhotos, db.outbox], async () => {
+    await db.quoteLines.where("parentId").equals(id).delete();
+    await db.quotePhotos.where("quoteId").equals(id).delete();
+    await db.customers.put(customer);
+    await db.quotes.put(next);
+    await db.quoteLines.bulkPut(lines);
+    await db.quotePhotos.bulkPut(photos);
+    await enqueue("customer", customer.id, { ...customer }, now);
+    await enqueue("quote", next.id, { ...next, lines, photos }, now);
+  });
+  void syncNow();
+  return next;
+}
+
+export async function updateCustomer(id: string, patch: { name?: string; phone?: string; email?: string }): Promise<Customer> {
+  const existing = await db.customers.get(id);
+  if (!existing) throw new Error("Customer not found.");
+  const name = (patch.name ?? existing.name).trim();
+  const nameKey = normalizeName(name);
+  if (!nameKey) throw new Error("Add a customer name.");
+  const now = new Date().toISOString();
+  const customer: Customer = {
+    ...existing,
+    name,
+    nameKey,
+    phone: (patch.phone ?? existing.phone).trim(),
+    email: (patch.email ?? existing.email).trim(),
+    updatedAt: now,
+  };
+  await db.transaction("rw", [db.customers, db.outbox], async () => {
+    await db.customers.put(customer);
+    await enqueue("customer", customer.id, { ...customer }, now);
+  });
+  void syncNow();
+  return customer;
 }
 
 export async function saveLineItem(description: string, price: string): Promise<void> {
@@ -309,12 +418,12 @@ export async function recordPayment(invoiceId: string, amountCents: number, meth
   void syncNow();
 }
 
-export async function markPaid(invoiceId: string): Promise<void> {
+export async function markPaid(invoiceId: string, method: Payment["method"] = "cash"): Promise<void> {
   const invoice = await db.invoices.get(invoiceId);
   if (!invoice) throw new Error("Invoice not found.");
   const payments = await db.payments.where("invoiceId").equals(invoiceId).toArray();
   const due = balanceDue(invoice.totalCents, paidTotal(payments.map((payment) => payment.amountCents)));
-  await recordPayment(invoiceId, due, "cash");
+  await recordPayment(invoiceId, due, method);
 }
 
 export async function saveBusiness(next: Business): Promise<void> {

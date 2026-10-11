@@ -20,5 +20,31 @@ describe("share links", () => {
     expect(links.mailto.startsWith("mailto:rosa%40example.com?subject=")).toBe(true);
     expect(decodeURIComponent(links.mailto)).toContain("https://pay.example/v/abc");
     expect(decodeURIComponent(links.mailto)).toContain("Quote Q-1001");
+    expect(links.hasPhone).toBe(true);
+    expect(links.hasEmail).toBe(true);
+  });
+
+  it("hides WhatsApp and email when those contacts are missing", () => {
+    const bare = shareLinks({
+      url: "https://pay.example/v/abc",
+      business: "Alvarez Plumbing",
+      number: "Q-1001",
+    });
+    expect(bare.hasPhone).toBe(false);
+    expect(bare.hasEmail).toBe(false);
+  });
+
+  it("words a reminder with the amount still due", () => {
+    const reminder = shareLinks({
+      url: "https://pay.example/i/abc",
+      business: "Alvarez Plumbing",
+      number: "INV-1002",
+      docLabel: "invoice",
+      reminderAmount: "$165.00",
+      email: "rosa@example.com",
+    });
+    expect(reminder.message).toContain("Reminder from Alvarez Plumbing");
+    expect(reminder.message).toContain("$165.00 due");
+    expect(decodeURIComponent(reminder.mailto)).toContain("Reminder: Invoice INV-1002");
   });
 });

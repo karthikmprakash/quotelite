@@ -76,4 +76,45 @@ describe("sync once", () => {
     const hidden = (await (await app.request("/api/sync", authed(other.cookie))).json()) as { quotes: unknown[] };
     expect(hidden.quotes).toEqual([]);
   });
+
+  it("gives a second phone's quote the next free number instead of dropping it", async () => {
+    const { app, db } = testApp();
+    const account = await signup(app);
+    const now = "2026-10-10T12:00:00.000Z";
+    const customerId = crypto.randomUUID();
+    const quote = (recordId: string, opId: string, status = "draft") => ({
+      id: opId,
+      entity: "quote",
+      action: "upsert",
+      recordId,
+      at: now,
+      payload: {
+        customerId,
+        number: "Q-1001",
+        status,
+        taxBps: 0,
+        notes: "",
+        terms: "",
+        publicToken: `token-${opId}`,
+        lines: [{ id: `line-${opId}`, description: "Faucet", qtyMilli: 1000, unitPriceCents: 5000 }],
+        photos: [],
+        createdAt: now,
+        updatedAt: now,
+      },
+    });
+    const send = (ops: unknown[]) =>
+      app.request("/api/sync", authed(account.cookie, { method: "POST", body: JSON.stringify({ ops }) }));
+    const first = crypto.randomUUID();
+    const second = crypto.randomUUID();
+    await send([
+      { id: "op-c", entity: "customer", action: "upsert", recordId: customerId, at: now, payload: { name: "Rosa", createdAt: now, updatedAt: now } },
+      quote(first, "op-a"),
+    ]);
+    const result = await (await send([quote(second, "op-b"), quote(second, "op-b2", "sent")])).json();
+    expect(result.rejected).toEqual([]);
+    const numberOf = (id: string) => get<{ number: string }>(db, "SELECT number FROM quotes WHERE id = ?", id)?.number;
+    expect(numberOf(first)).toBe("Q-1001");
+    expect(numberOf(second)).toBe("Q-1002");
+    expect(get<{ status: string }>(db, "SELECT status FROM quotes WHERE id = ?", second)?.status).toBe("sent");
+  });
 });

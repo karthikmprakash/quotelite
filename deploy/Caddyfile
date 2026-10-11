@@ -1,0 +1,8 @@
+{
+	email {$ACME_EMAIL:ops@localhost}
+}
+
+{$SITE_ADDRESS:localhost} {
+	encode gzip
+	reverse_proxy app:8787
+}
