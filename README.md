@@ -66,7 +66,7 @@ Names only — values go in `.env` on the host, never in git.
 
 ## CI / CD and releases
 
-- Pull requests and `main` run typecheck, lint, unit tests, and a production build. Playwright runs after that. `main` also publishes `ghcr.io/karthikmprakash/quotelite:<sha>` and `:main`.
+- Pull requests and `main` run typecheck, lint, unit tests, and a production build. Playwright runs after that. `main` also publishes `ghcr.io/karthikmprakash/quotelite:<sha>` and `:main` for `linux/amd64` and `linux/arm64`.
 - Tag a version to cut a GitHub Release and push `:x.y.z` plus `:latest`:
 
 ```bash

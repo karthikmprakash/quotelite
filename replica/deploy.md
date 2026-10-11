@@ -4,7 +4,7 @@ Date: 2026-10-11  Go from user: infrastructure only (not live on a public domain
 
 ## Host
 
-Docker Compose on a VPS you control. Image: `ghcr.io/karthikmprakash/quotelite`. Data: named volume `quotelite-data`. Optional Caddy profile for TLS.
+Docker Compose on a VPS you control. Image: `ghcr.io/karthikmprakash/quotelite` (`linux/amd64` and `linux/arm64`). Data: named volume `quotelite-data`. Optional Caddy profile for TLS. `docker compose pull` selects the host architecture.
 
 ## Environment
 

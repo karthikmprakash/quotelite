@@ -18,7 +18,7 @@ jobs:
   release:
     name: GitHub Release and image
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
         with:
@@ -49,6 +49,7 @@ jobs:
           else
             gh release create "$TAG" --generate-notes --title "QuoteLite $TAG"
           fi
+      - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
@@ -60,13 +61,14 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{version}},value=${{ steps.tag.outputs.name }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ steps.tag.outputs.name }}
             type=raw,value=latest
       - uses: docker/build-push-action@v6
         with:
           context: .
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
