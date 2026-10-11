@@ -300,7 +300,7 @@ export function Landing() {
               <div className="site-glass-caption">
                 <div>
                   <strong>Crew pricing stays flat</strong>
-                  <p>Add people on the truck without a per-seat climb.</p>
+                  <p>Add people on the truck without paying extra for each person.</p>
                 </div>
               </div>
             </Reveal>

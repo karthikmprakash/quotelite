@@ -144,7 +144,7 @@ export function QuoteForm() {
       try {
         localStorage.setItem(NEW_QUOTE_DRAFT, JSON.stringify(payload));
       } catch {
-        /* quota */
+        /* storage full */
       }
     }, 280);
     return () => window.clearTimeout(timer);
